@@ -8,7 +8,8 @@ import cv2
 import numpy as np
 
 from yolox.data import get_yolox_datadir
-from yolox.data.datasets import CacheDataset, cache_read_img
+from yolox.data.datasets import CacheDataset
+from yolox.data.datasets.datasets_wrapper import cache_read_img
 from .dacsdc_classes import DACSDC_CLASSES
 
 

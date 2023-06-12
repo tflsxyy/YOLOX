@@ -79,7 +79,7 @@ class DACSDCDataset(CacheDataset):
     input is image, target is annotation
 
     Args:
-        root (string): filepath to VOCdevkit folder.
+        root (string): filepath to DACSDC dataset folder.
         image_set (string): imageset to use (eg. 'train', 'val', 'test')
         transform (callable, optional): transformation to perform on the
             input image
@@ -92,48 +92,48 @@ class DACSDCDataset(CacheDataset):
 
     def __init__(
         self,
-        data_dir,
-        image_sets=[("2007", "trainval"), ("2012", "trainval")],
+        data_dir=None,
+        image_sets=("train", "train_label"),
         img_size=(416, 416),
         preproc=None,
-        target_transform=AnnotationTransform(),
-        dataset_name="VOC0712",
+        target_transform=None, # AnnotationTransform(),
+        dataset_name="DACSDC",
         cache=False,
         cache_type="ram",
     ):
-        self.root = data_dir
+        if data_dir is None:
+            data_dir = get_yolox_datadir() # os.path.join(get_yolox_datadir(), "COCO")
+        self.data_dir = data_dir
         self.image_set = image_sets
         self.img_size = img_size
         self.preproc = preproc
         self.target_transform = target_transform
         self.name = dataset_name
-        self._annopath = os.path.join("%s", "Annotations", "%s.xml")
-        self._imgpath = os.path.join("%s", "JPEGImages", "%s.jpg")
+        self._annopath = os.path.join(self.data_dir, self.image_set[1], "%s.json")
+        self._imgpath = os.path.join(self.data_dir, self.image_set[0], "%s.jpg")
         self._classes = DACSDC_CLASSES
         self.cats = [
             {"id": idx, "name": val} for idx, val in enumerate(DACSDC_CLASSES)
         ]
         self.class_ids = list(range(len(DACSDC_CLASSES)))
         self.ids = list()
-        for (year, name) in image_sets:
-            self._year = year
-            rootpath = os.path.join(self.root, "VOC" + year)
-            for line in open(
-                os.path.join(rootpath, "ImageSets", "Main", name + ".txt")
-            ):
-                self.ids.append((rootpath, line.strip()))
+        # for (year, name) in image_sets:
+            # self._year = year
+        # rootpath = os.path.join(self.data_dir, "VOC" + year)
+        for line in open(os.path.join(self.data_dir, self.image_set[0] + ".txt")):
+            self.ids.append(os.path.basename(line.strip()))
         self.num_imgs = len(self.ids)
 
         self.annotations = self._load_coco_annotations()
 
         path_filename = [
-            (self._imgpath % self.ids[i]).split(self.root + "/")[1]
+            (self._imgpath % self.ids[i]).split(self.data_dir)[1]
             for i in range(self.num_imgs)
         ]
         super().__init__(
             input_dimension=img_size,
             num_imgs=self.num_imgs,
-            data_dir=self.root,
+            data_dir=self.data_dir,
             cache_dir_name=f"cache_{self.name}",
             path_filename=path_filename,
             cache=cache,
@@ -236,7 +236,7 @@ class DACSDCDataset(CacheDataset):
 
     def _get_voc_results_file_template(self):
         filename = "comp4_det_test" + "_{:s}.txt"
-        filedir = os.path.join(self.root, "results", "VOC" + self._year, "Main")
+        filedir = os.path.join(self.data_dir, "results", "VOC" + self._year, "Main")
         if not os.path.exists(filedir):
             os.makedirs(filedir)
         path = os.path.join(filedir, filename)
@@ -268,12 +268,12 @@ class DACSDCDataset(CacheDataset):
                         )
 
     def _do_python_eval(self, output_dir="output", iou=0.5):
-        rootpath = os.path.join(self.root, "VOC" + self._year)
+        rootpath = os.path.join(self.data_dir, "VOC" + self._year)
         name = self.image_set[0][1]
         annopath = os.path.join(rootpath, "Annotations", "{:s}.xml")
         imagesetfile = os.path.join(rootpath, "ImageSets", "Main", name + ".txt")
         cachedir = os.path.join(
-            self.root, "annotations_cache", "VOC" + self._year, name
+            self.data_dir, "annotations_cache", "VOC" + self._year, name
         )
         if not os.path.exists(cachedir):
             os.makedirs(cachedir)

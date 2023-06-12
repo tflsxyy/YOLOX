@@ -7,7 +7,7 @@ DACSDC_CLASSES = (
     "Traffic Light-Yellow Light",
     "Traffic Light-Green Light",
     "Traffic Light-Off",
-    "Solid lane line",
-    "Dotted lane line",
-    "Crosswalk",
+    # "Solid lane line",
+    # "Dotted lane line",
+    # "Crosswalk",
 )

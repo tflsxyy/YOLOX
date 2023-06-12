@@ -35,7 +35,7 @@ def prepare_dataset(yolox_dir):
     for image_path in val_images:
         image_name = os.path.basename(image_path)
         shutil.copy(image_path, os.path.join(val_dir, image_name))
-        val_file.write(image_path, + '\n')
+        val_file.write(image_path + '\n')
 
     # Copy the corresponding label files to the train_label and val_label directories
     for label_file in os.listdir(labels_dir):

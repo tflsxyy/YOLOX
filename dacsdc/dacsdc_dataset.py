@@ -321,3 +321,14 @@ class DACSDCDataset(CacheDataset):
             print("--------------------------------------------------------------")
 
         return np.mean(aps)
+
+if __name__ == "__main__":
+    dataset = DACSDCDataset(
+        data_dir=get_yolox_datadir,
+        image_sets=('trainval', 'train_label'),
+        img_size=(416, 416),
+        cache=True,
+        cache_type="ram",
+    )
+    print('dataset initialzed')
+    

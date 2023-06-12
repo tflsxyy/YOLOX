@@ -28,7 +28,7 @@ def prepare_dataset(yolox_dir):
     for image_path in train_images:
         image_name = os.path.basename(image_path)
         shutil.copy(image_path, os.path.join(train_dir, image_name))
-        train_file.write(image_path + + '\n')
+        train_file.write(image_path + '\n')
 
     # Copy the last 2000 images to the validation directory
     val_images = glob.glob(os.path.join(jpeg_images_dir, '01[0-9][0-9][0-9][0-9].jpg'))

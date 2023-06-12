@@ -10,7 +10,7 @@ import numpy as np
 from yolox.data import get_yolox_datadir
 from yolox.data.datasets import CacheDataset
 from yolox.data.datasets.datasets_wrapper import cache_read_img
-from .dacsdc_classes import DACSDC_CLASSES
+from dacsdc.dacsdc_classes import DACSDC_CLASSES
 
 
 # class AnnotationTransform(object):

@@ -234,7 +234,7 @@ class DACSDCDataset(CacheDataset):
 
     def _get_voc_results_file_template(self):
         filename = "comp4_det_test" + "_{:s}.txt"
-        filedir = os.path.join(self.data_dir, "results", "VOC" + self._year, "Main")
+        filedir = os.path.join(self.data_dir, "results")
         if not os.path.exists(filedir):
             os.makedirs(filedir)
         path = os.path.join(filedir, filename)
@@ -266,18 +266,18 @@ class DACSDCDataset(CacheDataset):
                         )
 
     def _do_python_eval(self, output_dir="output", iou=0.5):
-        rootpath = os.path.join(self.data_dir, "VOC" + self._year)
-        name = self.image_set[0][1]
-        annopath = os.path.join(rootpath, "Annotations", "{:s}.xml")
-        imagesetfile = os.path.join(rootpath, "ImageSets", "Main", name + ".txt")
+        rootpath = os.path.join(self.data_dir)
+        name = self.image_set[0]
+        annopath = os.path.join(rootpath, self.image_set[1], "{:s}.xml")
+        imagesetfile = os.path.join(rootpath, name + ".txt")
         cachedir = os.path.join(
-            self.data_dir, "annotations_cache", "VOC" + self._year, name
+            self.data_dir, "annotations_cache", name
         )
         if not os.path.exists(cachedir):
             os.makedirs(cachedir)
         aps = []
         # The PASCAL VOC metric changed in 2010
-        use_07_metric = True if int(self._year) < 2010 else False
+        use_07_metric = True # if int(self._year) < 2010 else False
         print("Eval IoU : {:.2f}".format(iou))
         if output_dir is not None and not os.path.isdir(output_dir):
             os.mkdir(output_dir)

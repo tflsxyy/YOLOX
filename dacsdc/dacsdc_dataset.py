@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 import cv2
 import numpy as np
 
+from yolox.evaluators.voc_eval import voc_eval
 from yolox.data import get_yolox_datadir
 from yolox.data.datasets import CacheDataset
 from yolox.data.datasets.datasets_wrapper import cache_read_img

@@ -7,7 +7,7 @@ from yolox.data import get_yolox_datadir
 def prepare_dataset(yolox_dir):
     # Define paths
     jpeg_images_dir = os.path.join(yolox_dir, 'JPEGImages')
-    labels_dir = os.path.join(yolox_dir, 'label')
+    labels_dir = os.path.join(yolox_dir, 'Annotations')
     train_dir = os.path.join(yolox_dir, 'train')
     val_dir = os.path.join(yolox_dir, 'val')
     train_label_dir = os.path.join(yolox_dir, 'train_label')
@@ -28,14 +28,14 @@ def prepare_dataset(yolox_dir):
     for image_path in train_images:
         image_name = os.path.basename(image_path)
         shutil.copy(image_path, os.path.join(train_dir, image_name))
-        train_file.write(image_path + '\n')
+        train_file.write(image_name.split('.')[0] + '\n')
 
     # Copy the last 2000 images to the validation directory
     val_images = glob.glob(os.path.join(jpeg_images_dir, '01[0-9][0-9][0-9][0-9].jpg'))
     for image_path in val_images:
         image_name = os.path.basename(image_path)
         shutil.copy(image_path, os.path.join(val_dir, image_name))
-        val_file.write(image_path + '\n')
+        val_file.write(image_name.split('.')[0] + '\n')
 
     # Copy the corresponding label files to the train_label and val_label directories
     for label_file in os.listdir(labels_dir):

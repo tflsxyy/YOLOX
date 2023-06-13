@@ -13,63 +13,63 @@ from yolox.data.datasets.datasets_wrapper import cache_read_img
 from dacsdc.dacsdc_classes import DACSDC_CLASSES
 
 
-# class AnnotationTransform(object):
+class AnnotationTransform(object):
 
-#     """Transforms a VOC annotation into a Tensor of bbox coords and label index
-#     Initilized with a dictionary lookup of classnames to indexes
+    """Transforms a VOC annotation into a Tensor of bbox coords and label index
+    Initilized with a dictionary lookup of classnames to indexes
 
-#     Arguments:
-#         class_to_ind (dict, optional): dictionary lookup of classnames -> indexes
-#             (default: alphabetic indexing of VOC's 20 classes)
-#         keep_difficult (bool, optional): keep difficult instances or not
-#             (default: False)
-#         height (int): height
-#         width (int): width
-#     """
+    Arguments:
+        class_to_ind (dict, optional): dictionary lookup of classnames -> indexes
+            (default: alphabetic indexing of VOC's 20 classes)
+        keep_difficult (bool, optional): keep difficult instances or not
+            (default: False)
+        height (int): height
+        width (int): width
+    """
 
-#     def __init__(self, class_to_ind=None, keep_difficult=True):
-#         self.class_to_ind = class_to_ind or dict(
-#             zip(DACSDC_CLASSES, range(len(DACSDC_CLASSES)))
-#         )
-#         self.keep_difficult = keep_difficult
+    def __init__(self, class_to_ind=None, keep_difficult=True):
+        self.class_to_ind = class_to_ind or dict(
+            zip(DACSDC_CLASSES, range(len(DACSDC_CLASSES)))
+        )
+        self.keep_difficult = keep_difficult
 
-#     def __call__(self, target):
-#         """
-#         Arguments:
-#             target (annotation) : the target annotation to be made usable
-#                 will be an ET.Element
-#         Returns:
-#             a list containing lists of bounding boxes  [bbox coords, class name]
-#         """
-#         res = np.empty((0, 5))
-#         for obj in target.iter("object"):
-#             difficult = obj.find("difficult")
-#             if difficult is not None:
-#                 difficult = int(difficult.text) == 1
-#             else:
-#                 difficult = False
-#             if not self.keep_difficult and difficult:
-#                 continue
-#             name = obj.find("name").text.strip()
-#             bbox = obj.find("bndbox")
+    def __call__(self, target):
+        """
+        Arguments:
+            target (annotation) : the target annotation to be made usable
+                will be an ET.Element
+        Returns:
+            a list containing lists of bounding boxes  [bbox coords, class name]
+        """
+        res = np.empty((0, 5))
+        for obj in target.iter("object"):
+            difficult = obj.find("difficult")
+            if difficult is not None:
+                difficult = int(difficult.text) == 1
+            else:
+                difficult = False
+            if not self.keep_difficult and difficult:
+                continue
+            name = obj.find("name").text.strip()
+            bbox = obj.find("bndbox")
 
-#             pts = ["xmin", "ymin", "xmax", "ymax"]
-#             bndbox = []
-#             for i, pt in enumerate(pts):
-#                 cur_pt = int(float(bbox.find(pt).text)) - 1
-#                 # scale height or width
-#                 # cur_pt = cur_pt / width if i % 2 == 0 else cur_pt / height
-#                 bndbox.append(cur_pt)
-#             label_idx = self.class_to_ind[name]
-#             bndbox.append(label_idx)
-#             res = np.vstack((res, bndbox))  # [xmin, ymin, xmax, ymax, label_ind]
-#             # img_id = target.find('filename').text[:-4]
+            pts = ["xmin", "ymin", "xmax", "ymax"]
+            bndbox = []
+            for i, pt in enumerate(pts):
+                cur_pt = int(float(bbox.find(pt).text)) - 1
+                # scale height or width
+                # cur_pt = cur_pt / width if i % 2 == 0 else cur_pt / height
+                bndbox.append(cur_pt)
+            label_idx = self.class_to_ind[name]
+            bndbox.append(label_idx)
+            res = np.vstack((res, bndbox))  # [xmin, ymin, xmax, ymax, label_ind]
+            # img_id = target.find('filename').text[:-4]
 
-#         width = int(target.find("size").find("width").text)
-#         height = int(target.find("size").find("height").text)
-#         img_info = (height, width)
+        width = int(target.find("size").find("width").text)
+        height = int(target.find("size").find("height").text)
+        img_info = (height, width)
 
-#         return res, img_info
+        return res, img_info
 
 
 class DACSDCDataset(CacheDataset):
@@ -97,7 +97,7 @@ class DACSDCDataset(CacheDataset):
         image_sets=("train", "train_label"),
         img_size=(416, 416),
         preproc=None,
-        target_transform=None, # AnnotationTransform(),
+        target_transform=AnnotationTransform(),
         dataset_name="DACSDC",
         cache=False,
         cache_type="ram",
@@ -110,8 +110,8 @@ class DACSDCDataset(CacheDataset):
         self.preproc = preproc
         self.target_transform = target_transform
         self.name = dataset_name
-        self._annopath = os.path.join(self.data_dir, self.image_set[1], "%s.json")
-        self._imgpath = os.path.join(self.data_dir, self.image_set[0], "%s.jpg")
+        self._annopath = os.path.join("%s", self.image_set[1], "%s.xml")
+        self._imgpath = os.path.join("%s", self.image_set[0], "%s.jpg")
         self._classes = DACSDC_CLASSES
         self.cats = [
             {"id": idx, "name": val} for idx, val in enumerate(DACSDC_CLASSES)
@@ -120,9 +120,9 @@ class DACSDCDataset(CacheDataset):
         self.ids = list()
         # for (year, name) in image_sets:
             # self._year = year
-        # rootpath = os.path.join(self.data_dir, "VOC" + year)
+        rootpath = os.path.join(self.data_dir, self.image_set[1])
         for line in open(os.path.join(self.data_dir, self.image_set[0] + ".txt")):
-            self.ids.append(os.path.basename(line.strip()))
+            self.ids.append((rootpath, line.strip()))
         self.num_imgs = len(self.ids)
 
         self.annotations = self._load_coco_annotations()
@@ -325,8 +325,8 @@ class DACSDCDataset(CacheDataset):
 
 if __name__ == "__main__":
     dataset = DACSDCDataset(
-        data_dir=get_yolox_datadir,
-        image_sets=('trainval', 'train_label'),
+        data_dir=get_yolox_datadir(),
+        image_sets=('train', 'train_label'),
         img_size=(416, 416),
         cache=True,
         cache_type="ram",

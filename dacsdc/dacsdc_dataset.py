@@ -118,12 +118,9 @@ class DACSDCDataset(CacheDataset):
             {"id": idx, "name": val} for idx, val in enumerate(DACSDC_CLASSES)
         ]
         self.class_ids = list(range(len(DACSDC_CLASSES)))
-        self.ids = list()
-        # for (year, name) in image_sets:
-            # self._year = year
-        rootpath = os.path.join(self.data_dir, self.image_set[1])
+        self.ids = list() # ($YOLOX_DATADIR/train, 00001)
         for line in open(os.path.join(self.data_dir, self.image_set[0] + ".txt")):
-            self.ids.append((rootpath, line.strip()))
+            self.ids.append((self.data_dir, line.strip()))
         self.num_imgs = len(self.ids)
 
         self.annotations = self._load_coco_annotations()
@@ -325,9 +322,16 @@ class DACSDCDataset(CacheDataset):
         return np.mean(aps)
 
 if __name__ == "__main__":
-    dataset = DACSDCDataset(
+    train_dataset = DACSDCDataset(
         data_dir=get_yolox_datadir(),
         image_sets=('train', 'train_label'),
+        img_size=(416, 416),
+        cache=True,
+        cache_type="ram",
+    )
+    val_dataset = DACSDCDataset(
+        data_dir=get_yolox_datadir(),
+        image_sets=('val', 'val_label'),
         img_size=(416, 416),
         cache=True,
         cache_type="ram",

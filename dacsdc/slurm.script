@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --time=15-00:00:00
+#SBATCH --job-name=DistQuant
+#SBATCH --partition=ce-mri
+#SBATCH --gres=gpu:v100:4
+#SBATCH --mem=360G
+#SBATCH --exclusive
+#SBATCH --nodelist=d3098
+#SBATCH --output=/home/xie.yany/script/%j.out
+#SBATCH --error=/home/xie.yany/script/%j.err
+
+CURRENT_JOBID=$(dirname $0)
+cp $(dirname $0)/slurm_script /home/xie.yany/script/${CURRENT_JOBID:21}.script
+cd /home/xie.yany/YOLOX/
+pwd
+
+python tools/train.py -f dacsdc/yolox_dacsdc_nano.py -d 4 -b 32 --fp16 -c dacsdc/yolox_nano.pth --cache
+
+awk -v t=$SECONDS 'BEGIN{printf "Elapsed Time (HH:MM:SS): %d:%02d:%02d\n", t/3600, t/60%60, t%60}'

@@ -37,14 +37,18 @@ def prepare_dataset(yolox_dir):
         shutil.copy(image_path, os.path.join(val_dir, image_name))
         val_file.write(image_name.split('.')[0] + '\n')
 
-    # Copy the corresponding label files to the train_label and val_label directories
-    for label_file in os.listdir(labels_dir):
-        image_number = label_file.split('.')[0]
-        if int(image_number) <= 8000:
-            shutil.copy(os.path.join(labels_dir, label_file), train_label_dir)
-        else:
-            shutil.copy(os.path.join(labels_dir, label_file), val_label_dir)
-            
+    # Copy the corresponding label files to the train_label directories
+    train_labels = glob.glob(os.path.join(labels_dir, '0[0-9][0-9][0-9][0-9].xml'))
+    for label_path in train_labels:
+        label_name = os.path.basename(label_path)
+        shutil.copy(label_path, os.path.join(train_label_dir, label_name))
+
+    # Copy the corresponding label files to the val_label directories
+    val_labels = glob.glob(os.path.join(labels_dir, '01[0-9][0-9][0-9][0-9].xml'))
+    for label_path in val_labels:
+        label_name = os.path.basename(label_path)
+        shutil.copy(label_path, os.path.join(val_label_dir, label_name))
+
     train_file.close()
     val_file.close()
 

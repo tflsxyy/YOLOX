@@ -26,6 +26,7 @@ class Exp(MyExp):
 
         # Define yourself dataset path
         self.num_classes = 8
+        # self.act = "relu" # may need this for brevitas export to FINN
 
     def get_model(self, sublinear=False):
 

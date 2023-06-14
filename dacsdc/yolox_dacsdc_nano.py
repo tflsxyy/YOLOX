@@ -20,13 +20,13 @@ class Exp(MyExp):
         self.random_size = (10, 20)
         self.test_size = (416, 416)
         # self.mosaic_prob = 0.5
-        self.max_epoch = 800
+        self.max_epoch = 500
         self.exp_name = os.path.split(os.path.realpath(__file__))[1].split(".")[0]
         self.enable_mixup = False
 
         # Define yourself dataset path
         self.num_classes = 8
-        # self.act = "relu" # may need this for brevitas export to FINN
+        self.act = "relu" # may need this for brevitas export to FINN
 
     def get_model(self, sublinear=False):
 

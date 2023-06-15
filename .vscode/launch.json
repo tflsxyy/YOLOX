@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "cwd": "/home/user1/YOLOX",
+            "program": "tools/export_onnx.py",
+            "console": "integratedTerminal",
+            // "justMyCode": true,
+            "args": [
+                "--output-name", "YOLOX_outputs/yolox_dacsdc_nano/yolox_dacsdc_nano_relu.onnx",
+                "-f", "dacsdc/yolox_dacsdc_nano.py",
+                "-c", "YOLOX_outputs/yolox_dacsdc_nano/last_epoch_ckpt.pth",
+            ],
+        }
+    ]
+}

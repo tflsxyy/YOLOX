@@ -88,6 +88,19 @@ def main():
     logger.info("loading checkpoint done.")
     dummy_input = torch.randn(args.batch_size, 3, exp.test_size[0], exp.test_size[1])
 
+    # export to finn onnx
+    from yolox.models.network_blocks import BaseConv
+    from copy import deepcopy
+    import brevitas.onnx as bo
+    from brevitas.quant_tensor import QuantTensor
+    finn_model = deepcopy(model)
+    finn_model.backbone.backbone.stem = BaseConv(12, 16, ksize=3, stride=1, act="relu")
+    export_path = f'{args.output_name[:-5]}_finn.onnx'
+    input_t = torch.randn(args.batch_size, 12, exp.test_size[0] // 2, exp.test_size[1] // 2)
+    input_qt = QuantTensor(input_t, bit_width=torch.tensor(8.0))
+    bo.export_finn_onnx(finn_model, export_path=export_path, input_t=input_qt)
+    logger.info("generated finn-onnx model named {}".format(export_path))
+
     torch.onnx._export(
         model,
         dummy_input,

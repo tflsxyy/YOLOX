@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "ONNX export",
             "type": "python",
             "request": "launch",
             "cwd": "/home/user1/YOLOX",
@@ -17,6 +17,21 @@
                 "-f", "dacsdc/yolox_dacsdc_nano.py",
                 "-c", "YOLOX_outputs/yolox_dacsdc_nano/last_epoch_ckpt.pth",
             ],
+        },
+        {
+            "name": "training",
+            "type": "python",
+            "request": "launch",
+            "cwd": "/home/user1/YOLOX",
+            "program": "tools/train.py",
+            "console": "integratedTerminal",
+            // "justMyCode": true,
+            "args": [
+                "-f", "dacsdc/yolox_dacsdc_quant_nano.py",
+                "-d", "8", "-b", "32", "--fp16",
+                "-c", "YOLOX_outputs/yolox_dacsdc_nano/last_epoch_ckpt.pth",
+                "--cache",
+            ]
         }
     ]
 }

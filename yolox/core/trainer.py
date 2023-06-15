@@ -164,7 +164,9 @@ class Trainer:
             occupy_mem(self.local_rank)
 
         if self.is_distributed:
-            model = DDP(model, device_ids=[self.local_rank], broadcast_buffers=False)
+            # model = DDP(model, device_ids=[self.local_rank], broadcast_buffers=False)
+            model.cuda(self.local_rank)
+            model = DDP(model, device_ids=[self.local_rank])
 
         if self.use_model_ema:
             self.ema_model = ModelEMA(model, 0.9998)

@@ -5,6 +5,52 @@
 import torch
 import torch.nn as nn
 
+from brevitas.nn import QuantConv2d, QuantReLU, QuantMaxPool2d
+from brevitas.core.restrict_val import RestrictValueType
+from brevitas.quant import Int8ActPerTensorFloat
+from brevitas.quant import Int8WeightPerTensorFloat
+from brevitas.quant import Uint8ActPerTensorFloat
+
+WEIGHT_BIT_WIDTH = 8
+ACT_BIT_WIDTH = 8
+
+
+class CommonIntWeightPerTensorQuant(Int8WeightPerTensorFloat):
+    """
+    Common per-tensor weight quantizer with bit-width set to None so that it's forced to be
+    specified by each layer.
+    """
+    scaling_min_val = 2e-16
+    bit_width = None
+
+
+class CommonIntWeightPerChannelQuant(CommonIntWeightPerTensorQuant):
+    """
+    Common per-channel weight quantizer with bit-width set to None so that it's forced to be
+    specified by each layer.
+    """
+    scaling_per_output_channel = True
+
+
+class CommonIntActQuant(Int8ActPerTensorFloat):
+    """
+    Common signed act quantizer with bit-width set to None so that it's forced to be specified by
+    each layer.
+    """
+    scaling_min_val = 2e-16
+    bit_width = None
+    restrict_scaling_type = RestrictValueType.LOG_FP
+
+
+class CommonUintActQuant(Uint8ActPerTensorFloat):
+    """
+    Common unsigned act quantizer with bit-width set to None so that it's forced to be specified by
+    each layer.
+    """
+    scaling_min_val = 2e-16
+    bit_width = None
+    restrict_scaling_type = RestrictValueType.LOG_FP
+
 
 class SiLU(nn.Module):
     """export-friendly version of nn.SiLU()"""
@@ -35,17 +81,36 @@ class BaseConv(nn.Module):
         super().__init__()
         # same padding
         pad = (ksize - 1) // 2
-        self.conv = nn.Conv2d(
-            in_channels,
-            out_channels,
+        # self.conv = nn.Conv2d(
+        #     in_channels,
+        #     out_channels,
+        #     kernel_size=ksize,
+        #     stride=stride,
+        #     padding=pad,
+        #     groups=groups,
+        #     bias=bias,
+        # )
+        self.conv = QuantConv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
             kernel_size=ksize,
             stride=stride,
             padding=pad,
             groups=groups,
             bias=bias,
+            weight_quant=CommonIntWeightPerChannelQuant,
+            weight_bit_width=WEIGHT_BIT_WIDTH
         )
         self.bn = nn.BatchNorm2d(out_channels)
-        self.act = get_activation(act, inplace=True)
+        # self.act = get_activation(act, inplace=True)
+        self.act = QuantReLU(
+            act_quant=CommonUintActQuant,
+            bit_width=ACT_BIT_WIDTH,
+            per_channel_broadcastable_shape=(1, out_channels, 1, 1),
+            # scaling_stats_permute_dims=(1, 0, 2, 3),
+            scaling_per_output_channel=False,
+            return_quant_tensor=True
+        )
 
     def forward(self, x):
         return self.act(self.bn(self.conv(x)))
@@ -93,12 +158,20 @@ class Bottleneck(nn.Module):
         self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
         self.conv2 = Conv(hidden_channels, out_channels, 3, stride=1, act=act)
         self.use_add = shortcut and in_channels == out_channels
+        self.act = QuantReLU(
+            act_quant=CommonUintActQuant,
+            bit_width=ACT_BIT_WIDTH,
+            per_channel_broadcastable_shape=(1, hidden_channels, 1, 1),
+            # scaling_stats_permute_dims=(1, 0, 2, 3),
+            scaling_per_output_channel=False,
+            return_quant_tensor=True
+        )
 
     def forward(self, x):
         y = self.conv2(self.conv1(x))
         if self.use_add:
             y = y + x
-        return y
+        return self.act(y)
 
 
 class ResLayer(nn.Module):
@@ -130,7 +203,8 @@ class SPPBottleneck(nn.Module):
         self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=activation)
         self.m = nn.ModuleList(
             [
-                nn.MaxPool2d(kernel_size=ks, stride=1, padding=ks // 2)
+                # nn.MaxPool2d(kernel_size=ks, stride=1, padding=ks // 2)
+                QuantMaxPool2d(kernel_size=ks, stride=1, padding=ks // 2)
                 for ks in kernel_sizes
             ]
         )

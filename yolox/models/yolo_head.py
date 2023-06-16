@@ -12,7 +12,8 @@ import torch.nn.functional as F
 from yolox.utils import bboxes_iou, cxcywh2xyxy, meshgrid, visualize_assign
 
 from .losses import IOUloss
-from .network_blocks import BaseConv, DWConv
+from .network_blocks import BaseConv, DWConv, CommonIntWeightPerChannelQuant, WEIGHT_BIT_WIDTH
+from brevitas.nn import QuantConv2d
 
 
 class YOLOXHead(nn.Module):
@@ -94,31 +95,58 @@ class YOLOXHead(nn.Module):
                 )
             )
             self.cls_preds.append(
-                nn.Conv2d(
+                QuantConv2d(
                     in_channels=int(256 * width),
                     out_channels=self.num_classes,
                     kernel_size=1,
                     stride=1,
                     padding=0,
+                    weight_quant=CommonIntWeightPerChannelQuant,
+                    weight_bit_width=WEIGHT_BIT_WIDTH
                 )
+                # nn.Conv2d(
+                #     in_channels=int(256 * width),
+                #     out_channels=self.num_classes,
+                #     kernel_size=1,
+                #     stride=1,
+                #     padding=0,
+                # )
             )
             self.reg_preds.append(
-                nn.Conv2d(
+                QuantConv2d(
                     in_channels=int(256 * width),
                     out_channels=4,
                     kernel_size=1,
                     stride=1,
                     padding=0,
+                    weight_quant=CommonIntWeightPerChannelQuant,
+                    weight_bit_width=WEIGHT_BIT_WIDTH
                 )
+                # nn.Conv2d(
+                #     in_channels=int(256 * width),
+                #     out_channels=4,
+                #     kernel_size=1,
+                #     stride=1,
+                #     padding=0,
+                # )
             )
             self.obj_preds.append(
-                nn.Conv2d(
+                QuantConv2d(
                     in_channels=int(256 * width),
                     out_channels=1,
                     kernel_size=1,
                     stride=1,
                     padding=0,
+                    weight_quant=CommonIntWeightPerChannelQuant,
+                    weight_bit_width=WEIGHT_BIT_WIDTH
                 )
+                # nn.Conv2d(
+                #     in_channels=int(256 * width),
+                #     out_channels=1,
+                #     kernel_size=1,
+                #     stride=1,
+                #     padding=0,
+                # )
             )
 
         self.use_l1 = False
@@ -163,14 +191,14 @@ class YOLOXHead(nn.Module):
             if self.training:
                 output = torch.cat([reg_output, obj_output, cls_output], 1)
                 output, grid = self.get_output_and_grid(
-                    output, k, stride_this_level, xin[0].type()
+                    output, k, stride_this_level#, xin[0].type()
                 )
                 x_shifts.append(grid[:, :, 0])
                 y_shifts.append(grid[:, :, 1])
                 expanded_strides.append(
                     torch.zeros(1, grid.shape[1])
                     .fill_(stride_this_level)
-                    .type_as(xin[0])
+                    # .type_as(xin[0])
                 )
                 if self.use_l1:
                     batch_size = reg_output.shape[0]
@@ -208,11 +236,12 @@ class YOLOXHead(nn.Module):
                 [x.flatten(start_dim=2) for x in outputs], dim=2
             ).permute(0, 2, 1)
             if self.decode_in_inference:
-                return self.decode_outputs(outputs, dtype=xin[0].type())
+                # return self.decode_outputs(outputs, dtype=xin[0].type())
+                return self.decode_outputs(outputs)
             else:
                 return outputs
 
-    def get_output_and_grid(self, output, k, stride, dtype):
+    def get_output_and_grid(self, output, k, stride, dtype=None):
         grid = self.grids[k]
 
         batch_size = output.shape[0]
@@ -220,7 +249,8 @@ class YOLOXHead(nn.Module):
         hsize, wsize = output.shape[-2:]
         if grid.shape[2:4] != output.shape[2:4]:
             yv, xv = meshgrid([torch.arange(hsize), torch.arange(wsize)])
-            grid = torch.stack((xv, yv), 2).view(1, 1, hsize, wsize, 2).type(dtype)
+            # grid = torch.stack((xv, yv), 2).view(1, 1, hsize, wsize, 2).type(dtype)
+            grid = torch.stack((xv, yv), 2).view(1, 1, hsize, wsize, 2)
             self.grids[k] = grid
 
         output = output.view(batch_size, 1, n_ch, hsize, wsize)
@@ -232,7 +262,7 @@ class YOLOXHead(nn.Module):
         output[..., 2:4] = torch.exp(output[..., 2:4]) * stride
         return output, grid
 
-    def decode_outputs(self, outputs, dtype):
+    def decode_outputs(self, outputs, dtype=None):
         grids = []
         strides = []
         for (hsize, wsize), stride in zip(self.hw, self.strides):
@@ -242,8 +272,10 @@ class YOLOXHead(nn.Module):
             shape = grid.shape[:2]
             strides.append(torch.full((*shape, 1), stride))
 
-        grids = torch.cat(grids, dim=1).type(dtype)
-        strides = torch.cat(strides, dim=1).type(dtype)
+        # grids = torch.cat(grids, dim=1).type(dtype)
+        # strides = torch.cat(strides, dim=1).type(dtype)
+        grids = torch.cat(grids, dim=1)
+        strides = torch.cat(strides, dim=1)
 
         outputs = torch.cat([
             (outputs[..., 0:2] + grids) * strides,
@@ -594,7 +626,8 @@ class YOLOXHead(nn.Module):
             obj_output = self.obj_preds[k](reg_feat)
 
             output = torch.cat([reg_output, obj_output, cls_output], 1)
-            output, grid = self.get_output_and_grid(output, k, stride_this_level, xin[0].type())
+            # output, grid = self.get_output_and_grid(output, k, stride_this_level, xin[0].type())
+            output, grid = self.get_output_and_grid(output, k, stride_this_level)
             x_shifts.append(grid[:, :, 0])
             y_shifts.append(grid[:, :, 1])
             expanded_strides.append(
